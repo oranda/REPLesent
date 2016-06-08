@@ -1542,4 +1542,42 @@ class REPLesentSpec extends FreeSpec {
       assert(slide4.output contains "*  3/3  *")
     }
   }
+
+  "Directive" - {
+    "Unknown directive" in {
+      val parse = capture(REPLesent(testWidth, testHeight, testFile("unknown_directive")))
+      assert(parse.output.isEmpty)
+      assert(parse.error.nonEmpty)
+    }
+
+    "IncludeRaw" - {
+      "Include a sample file" in {
+        val (w, h) = (9, 5)
+        val expected =
+          """*********
+            |*  ___  *
+            |*  | |  *
+            |*  ___  *
+            |*********""".stripMargin
+
+        val replesent = REPLesent(w, h, testFile("include_raw"))
+
+        val slide1 = capture(replesent.first)
+        assert(slide1.output === expected)
+        assert(slide1.error.isEmpty)
+      }
+
+      "File not found" in {
+        val parse = capture(REPLesent(testWidth, testHeight, testFile("include_raw_file_not_found")))
+        assert(parse.output.isEmpty)
+        assert(parse.error.nonEmpty)
+      }
+
+      "Incomplete args" in {
+        val parse = capture(REPLesent(testWidth, testHeight, testFile("include_raw_incomplete_args")))
+        assert(parse.output.isEmpty)
+        assert(parse.error.nonEmpty)
+      }
+    }
+  }
 }
