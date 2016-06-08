@@ -31,6 +31,7 @@ Features
 * Syntax highlighting
 * Run code straight from slides directly in the REPL with a single keystroke.
 No other presentation tool can do that for you!
+* Include files in slides and add quote bubbles ([@oranda](https://github.com/oranda))
 * And the #1 requested feature: emoji! :-) I mean, :smile:
 
 Quick Tour
