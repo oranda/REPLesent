@@ -501,6 +501,7 @@ case class REPLesent(
       val tokens: Seq[String] = ("[^\\s\"']+|\"([^\"]*)\"|'([^']*)'".r findAllIn s).toSeq
       tokens.head match {
         case "IncludeRaw" => IncludeRaw(args = tokens.tail)
+        case "Quote" => Quote(args = tokens.tail)
         case directive =>
           Console.err.println(s"Unknown directive: $directive")
           Iterator.empty
@@ -522,6 +523,80 @@ case class REPLesent(
         Console.err.println("No args supplied for directive IncludeRaw")
         Iterator.empty
       }
+  }
+
+  private object Quote extends Directive {
+    val defaultQuoteWidth = 40
+
+    implicit class QuoteUtils(s: String) {
+      def lineWrap(maxCols: Int): Seq[String] =
+        s.split(" ").foldLeft(Array(""))( (acc, word) => {
+          if ((acc.last + " " + word).trim.length > maxCols) acc :+ word
+          else {
+            val updatedLine = if (acc.last.isEmpty) word else acc.last + " " + word
+            acc.updated(acc.size - 1, updatedLine)
+          }
+        })
+
+      def stripQuotes: String = s.replaceAll("^\"|\"$", "")
+    }
+
+    def apply(args: Seq[String]): Iterator[String] = {
+      import config._
+
+      val bubbleBorderMaxWidth = 2
+
+      def addBubble(lines: Seq[String]): Iterator[String] = {
+        val longest: Int = lines.map(_.length).max
+        val topLine = whiteSpace + "_" * (longest + 2)
+        val bottomLine = whiteSpace + "-" * (longest + 2)
+
+        case class BubbleBorder(private val openB: String, private val closeB: String) {
+          val open = openB.substring(0, bubbleBorderMaxWidth)
+          val close = closeB.substring(closeB.length - bubbleBorderMaxWidth)
+        }
+
+        lazy val borderSingleLine = BubbleBorder("< ", " >")
+        lazy val borderFirstLine = BubbleBorder("/ ", " \\")
+        lazy val borderMiddleLines = BubbleBorder("| ", " |")
+        lazy val borderLastLine = BubbleBorder("\\ ", " /")
+
+        def addBorder(textLine: String, border: BubbleBorder): String = {
+          val sb = StringBuilder.newBuilder
+          sb ++= border.open
+          sb ++= textLine
+          sb ++= whiteSpace * (longest - textLine.length)
+          sb ++= border.close
+          sb.toString
+        }
+
+        val textLines: Iterator[String] = lines.size match {
+          case 0 => Iterator.empty
+          case 1 => Iterator(addBorder(lines.head, borderSingleLine))
+          case _ =>
+            Iterator(addBorder(lines.head, borderFirstLine)) ++
+              lines.drop(1).dropRight(1).map(addBorder(_, borderMiddleLines)) ++
+              Iterator(addBorder(lines.last, borderLastLine))
+        }
+        Iterator(topLine) ++ textLines ++ Iterator(bottomLine)
+      }
+
+      def quoteText(filename: String, quote: String, quoteWidth: Int): Iterator[String] =
+        addBubble(quote.stripQuotes.lineWrap(quoteWidth)) ++ fileLines(filename)
+
+      args match {
+        case filename +: quote +: restArgs =>
+          val requestedQuoteWidth = Try {
+            restArgs.head.toInt
+          } getOrElse defaultQuoteWidth
+          val totalBorderWidth = bubbleBorderMaxWidth * 2 + sinistral.length + dextral.length
+          val quoteWidth = Math.min(requestedQuoteWidth, width - totalBorderWidth)
+          quoteText(filename, quote, quoteWidth)
+        case _ =>
+          Console.err.println("Incomplete args supplied for directive Quote")
+          Iterator.empty
+      }
+    }
   }
 
   private def render(build: Build): String = {

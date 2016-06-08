@@ -1579,5 +1579,125 @@ class REPLesentSpec extends FreeSpec {
         assert(parse.error.nonEmpty)
       }
     }
+
+    "Quote" - {
+
+      "In a single line" in {
+        val (w, h) = (22, 9)
+        val expected =
+          """**********************
+            |*  ______________    *
+            |* < Hello World! >   *
+            |*  --------------    *
+            |*         \          *
+            |*          \         *
+            |*           \        *
+            |*             o -- o *
+            |**********************""".stripMargin
+
+        val replesent = REPLesent(w, h, testFile("quote_1_line"))
+
+        val slide1 = capture(replesent.first)
+        assert(slide1.output === expected)
+        assert(slide1.error.isEmpty)
+      }
+
+      "In 2 lines" in {
+        val (w, h) = (49, 10)
+        val expected =
+          """*************************************************
+            |*   _________________________________________   *
+            |*  / Hello World! As the default width is 40 \  *
+            |*  \ chars, this should take two lines.      /  *
+            |*   -----------------------------------------   *
+            |*          \                                    *
+            |*           \                                   *
+            |*            \                                  *
+            |*              o -- o                           *
+            |*************************************************""".stripMargin
+
+        val replesent = REPLesent(w, h, testFile("quote_2_line"))
+
+        val slide1 = capture(replesent.first)
+        assert(slide1.output === expected)
+        assert(slide1.error.isEmpty)
+      }
+
+      "In 3 lines" in {
+        val (w, h) = (49, 11)
+        val expected =
+          """*************************************************
+            |*  __________________________________________   *
+            |* / Hello World! As the default width is     \  *
+            |* | only 40 chars, this should run over into |  *
+            |* \ three lines.                             /  *
+            |*  ------------------------------------------   *
+            |*         \                                     *
+            |*          \                                    *
+            |*           \                                   *
+            |*             o -- o                            *
+            |*************************************************""".stripMargin
+
+        val replesent = REPLesent(w, h, testFile("quote_3_line"))
+
+        val slide1 = capture(replesent.first)
+        assert(slide1.output === expected)
+        assert(slide1.error.isEmpty)
+      }
+
+      "With custom width" in {
+        val (w, h) = (66, 10)
+        val expected =
+          """******************************************************************
+            |*  ___________________________________________________________   *
+            |* / Hello World! With a custom width of 60 chars, this should \  *
+            |* \ fit in two lines.                                         /  *
+            |*  -----------------------------------------------------------   *
+            |*         \                                                      *
+            |*          \                                                     *
+            |*           \                                                    *
+            |*             o -- o                                             *
+            |******************************************************************""".stripMargin
+
+        val replesent = REPLesent(w, h, testFile("quote_custom_width"))
+
+        val slide1 = capture(replesent.first)
+        assert(slide1.output === expected)
+        assert(slide1.error.isEmpty)
+      }
+
+      "With custom width greater than slide width" in {
+        val (w, h) = (49, 10)
+        val expected =
+          """*************************************************
+            |*  ___________________________________________  *
+            |* / If the supplied width is greater than the \ *
+            |* \ slide width, it should be corrected.      / *
+            |*  -------------------------------------------  *
+            |*         \                                     *
+            |*          \                                    *
+            |*           \                                   *
+            |*             o -- o                            *
+            |*************************************************""".stripMargin
+
+        val replesent = REPLesent(w, h, testFile("quote_custom_width_too_great"))
+
+        val slide1 = capture(replesent.first)
+        assert(slide1.output === expected)
+        assert(slide1.error.isEmpty)
+      }
+
+      "File not found" in {
+        val parse = capture(REPLesent(testWidth, testHeight, testFile("quote_file_not_found")))
+        assert(parse.output.isEmpty)
+        assert(parse.error.nonEmpty)
+      }
+
+      "Incomplete args" in {
+        val parse = capture(REPLesent(testWidth, testHeight, testFile("quote_incomplete_args")))
+        assert(parse.output.isEmpty)
+        assert(parse.error.nonEmpty)
+      }
+    }
   }
 }
